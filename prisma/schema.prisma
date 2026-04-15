@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  name      String   @unique // "Roshan", "Anand", "KaamDone"
+  balance   Float    @default(0)
+  totalIn   Float    @default(0)
+  totalOut  Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  transactions Transaction[]
+}
+
+model Ticket {
+  id             String   @id @default(cuid())
+  ticketNo       Int      @unique
+  starter        String   // "Roshan" or "Anand"
+  clientName     String
+  clientPhone    String
+  purpose        String
+  totalAmount    Float
+  starterAmount  Float    // 50% of total
+  partnerAmount  Float    // 60% of remainder
+  kaamDoneAmount Float    // 40% of remainder
+  status         String   @default("open") // "open" or "closed"
+  createdAt      DateTime @default(now())
+  closedAt       DateTime?
+  transactions   Transaction[]
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  walletId  String
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  ticketId  String?
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+  type      String   // "credit" or "debit"
+  amount    Float
+  reason    String   // "ticket_split", "withdrawal"
+  createdAt DateTime @default(now())
+}

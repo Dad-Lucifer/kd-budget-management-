@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -12,16 +10,19 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { TabName, Wallet as WalletType, Ticket, AnalyticsData } from '@/lib/types';
-import { DashboardTab } from '@/components/tabs/DashboardTab';
-import { NewWorkTab } from '@/components/tabs/NewWorkTab';
-import { ActiveTicketsTab } from '@/components/tabs/ActiveTicketsTab';
-import { HistoryTab } from '@/components/tabs/HistoryTab';
-import { AnalyticsTab } from '@/components/tabs/AnalyticsTab';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { NewWorkPage } from '@/pages/NewWorkPage';
+import { ActiveTicketsPage } from '@/pages/ActiveTicketsPage';
+import { HistoryPage } from '@/pages/HistoryPage';
+import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { WithdrawDialog } from '@/components/shared/WithdrawDialog';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/helpers';
+import { initializeWallets, getWallets } from '@/services/walletService';
+import { getTickets } from '@/services/ticketService';
+import { getAnalytics } from '@/services/analyticsService';
 
-export default function Home() {
+export default function App() {
   const [activeTab, setActiveTab] = useState<TabName>('dashboard');
   const [wallets, setWallets] = useState<WalletType[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -32,7 +33,7 @@ export default function Home() {
   // Initialize wallets on first load
   const initWallets = useCallback(async () => {
     try {
-      await fetch('/api/init', { method: 'POST' });
+      await initializeWallets();
     } catch (e) {
       console.error('Init error:', e);
     }
@@ -40,9 +41,8 @@ export default function Home() {
 
   const fetchWallets = useCallback(async () => {
     try {
-      const res = await fetch('/api/wallets');
-      const data = await res.json();
-      setWallets(data.wallets || []);
+      const data = await getWallets();
+      setWallets(data || []);
     } catch (e) {
       console.error('Fetch wallets error:', e);
     }
@@ -50,10 +50,8 @@ export default function Home() {
 
   const fetchTickets = useCallback(async (status?: string) => {
     try {
-      const url = status ? `/api/tickets?status=${status}` : '/api/tickets';
-      const res = await fetch(url);
-      const data = await res.json();
-      setTickets(data.tickets || []);
+      const data = await getTickets(status);
+      setTickets(data || []);
     } catch (e) {
       console.error('Fetch tickets error:', e);
     }
@@ -61,8 +59,7 @@ export default function Home() {
 
   const fetchAnalytics = useCallback(async () => {
     try {
-      const res = await fetch('/api/analytics');
-      const data = await res.json();
+      const data = await getAnalytics('all');
       setAnalytics(data);
     } catch (e) {
       console.error('Fetch analytics error:', e);
@@ -71,8 +68,16 @@ export default function Home() {
 
   const refreshAll = useCallback(async () => {
     setLoading(true);
-    await Promise.all([fetchWallets(), fetchTickets(), fetchAnalytics()]);
-    setLoading(false);
+    try {
+      await fetchWallets();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await fetchTickets();
+      await fetchAnalytics();
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [fetchWallets, fetchTickets, fetchAnalytics]);
 
   useEffect(() => {
@@ -91,9 +96,7 @@ export default function Home() {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gold via-teal to-blue flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-black" />
-            </div>
+            <img src="/money.png" alt="AgencyBudget" className="w-9 h-9 rounded-lg object-cover" />
             <div>
               <h1 className="text-lg font-bold text-foreground tracking-tight">AgencyBudget</h1>
               <p className="text-[11px] text-muted-foreground -mt-0.5">Smart Split Manager</p>
@@ -145,7 +148,7 @@ export default function Home() {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <DashboardTab
+            <DashboardPage
               wallets={wallets}
               tickets={tickets}
               analytics={analytics}
@@ -155,11 +158,11 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="new-work">
-            <NewWorkTab onTicketCreated={refreshAll} />
+            <NewWorkPage onTicketCreated={refreshAll} />
           </TabsContent>
 
           <TabsContent value="active">
-            <ActiveTicketsTab
+            <ActiveTicketsPage
               tickets={tickets.filter((t) => t.status === 'open')}
               loading={loading}
               onTicketClosed={refreshAll}
@@ -167,14 +170,14 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="history">
-            <HistoryTab
+            <HistoryPage
               tickets={tickets.filter((t) => t.status === 'closed')}
               loading={loading}
             />
           </TabsContent>
 
           <TabsContent value="analytics">
-            <AnalyticsTab
+            <AnalyticsPage
               analytics={analytics}
               loading={loading}
             />

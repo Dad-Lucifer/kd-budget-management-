@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import { Ticket } from '@/lib/types';
 import { formatCurrency, formatDate, getWalletColorClasses } from '@/lib/helpers';
@@ -27,34 +25,26 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { closeTicket } from '@/services/ticketService';
 
-interface ActiveTicketsTabProps {
+interface ActiveTicketsPageProps {
   tickets: Ticket[];
   loading: boolean;
   onTicketClosed: () => void;
 }
 
-export function ActiveTicketsTab({ tickets, loading, onTicketClosed }: ActiveTicketsTabProps) {
+export function ActiveTicketsPage({ tickets, loading, onTicketClosed }: ActiveTicketsPageProps) {
   const { toast } = useToast();
   const [closingId, setClosingId] = useState<string | null>(null);
 
   const handleCloseTicket = async (ticketId: string) => {
     setClosingId(ticketId);
     try {
-      const res = await fetch(`/api/tickets/${ticketId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to close ticket');
-      }
+      const data = await closeTicket(ticketId);
 
       toast({
         title: 'Ticket Closed ✅',
-        description: `Ticket #${data.ticket.ticketNo} has been closed.`,
+        description: `Ticket #${data.ticketNo} has been closed.`,
       });
 
       onTicketClosed();

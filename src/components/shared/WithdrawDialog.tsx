@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import { Wallet } from '@/lib/types';
 import { formatCurrency, getWalletColorClasses } from '@/lib/helpers';
@@ -17,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Wallet as WalletIcon, IndianRupee, ArrowDownRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { withdrawFromWallet } from '@/services/walletService';
 
 interface WithdrawDialogProps {
   open: boolean;
@@ -27,19 +26,19 @@ interface WithdrawDialogProps {
 
 export function WithdrawDialog({ open, onOpenChange, wallets, onWithdraw }: WithdrawDialogProps) {
   const { toast } = useToast();
-  const [selectedWallet, setSelectedWallet] = useState('');
+  const [withdrawnBy, setWithdrawnBy] = useState('');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const personalWallets = wallets.filter((w) => w.name !== 'KaamDone');
-  const selectedWalletData = wallets.find((w) => w.name === selectedWallet);
+  const kaamDoneWallet = wallets.find((w) => w.name === 'KaamDone');
+  const selectedWalletData = wallets.find((w) => w.name === 'KaamDone');
 
   const handleSubmit = async () => {
-    if (!selectedWallet || !amount) {
+    if (!withdrawnBy || !amount) {
       toast({
         title: 'Missing Fields',
-        description: 'Please select a wallet and enter an amount.',
+        description: 'Please select who is withdrawing and enter an amount.',
         variant: 'destructive',
       });
       return;
@@ -66,28 +65,15 @@ export function WithdrawDialog({ open, onOpenChange, wallets, onWithdraw }: With
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/wallets/withdraw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          walletName: selectedWallet,
-          amount: withdrawAmount,
-          reason: reason || 'Withdrawal',
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to process withdrawal');
-      }
+      const withdrawReason = reason || `Withdrawal by ${withdrawnBy}`;
+      const data = await withdrawFromWallet('KaamDone', withdrawAmount, withdrawReason);
 
       toast({
         title: 'Withdrawal Processed ✅',
-        description: `${formatCurrency(withdrawAmount)} withdrawn from ${selectedWallet}'s wallet.`,
+        description: `${formatCurrency(withdrawAmount)} withdrawn from Kaam Done wallet by ${withdrawnBy}.`,
       });
 
-      setSelectedWallet('');
+      setWithdrawnBy('');
       setAmount('');
       setReason('');
       onOpenChange(false);
@@ -113,34 +99,34 @@ export function WithdrawDialog({ open, onOpenChange, wallets, onWithdraw }: With
             Withdraw from Wallet
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Withdraw money from a personal wallet. Kaam Done wallet is not withdrawable.
+            Withdraw money from the Kaam Done wallet only.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
-          {/* Select Wallet */}
+          {/* Select Who Is Withdrawing */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Select Wallet</Label>
-            <RadioGroup value={selectedWallet} onValueChange={setSelectedWallet} className="grid grid-cols-2 gap-2">
-              {personalWallets.map((wallet) => {
-                const colors = getWalletColorClasses(wallet.name);
+            <Label className="text-sm font-medium">Who is withdrawing?</Label>
+            <RadioGroup value={withdrawnBy} onValueChange={setWithdrawnBy} className="grid grid-cols-2 gap-2">
+              {[
+                { name: 'Roshan', color: 'gold', icon: '👤' },
+                { name: 'Anand', color: 'teal', icon: '👨‍💼' },
+              ].map((person) => {
+                const colors = getWalletColorClasses(person.name);
                 return (
                   <Label
-                    key={wallet.id}
-                    htmlFor={`withdraw-${wallet.name}`}
+                    key={person.name}
+                    htmlFor={`withdraw-${person.name}`}
                     className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                      selectedWallet === wallet.name
+                      withdrawnBy === person.name
                         ? `${colors.bg} ${colors.border}`
                         : 'border-border/30 bg-secondary/20'
                     }`}
                   >
-                    <RadioGroupItem value={wallet.name} id={`withdraw-${wallet.name}`} />
+                    <RadioGroupItem value={person.name} id={`withdraw-${person.name}`} />
                     <div>
-                      <p className={`text-sm font-medium ${selectedWallet === wallet.name ? colors.text : 'text-foreground'}`}>
-                        {wallet.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Balance: {formatCurrency(wallet.balance)}
+                      <p className={`text-sm font-medium ${withdrawnBy === person.name ? colors.text : 'text-foreground'}`}>
+                        <span className="mr-1">{person.icon}</span> {person.name}
                       </p>
                     </div>
                   </Label>
@@ -148,6 +134,17 @@ export function WithdrawDialog({ open, onOpenChange, wallets, onWithdraw }: With
               })}
             </RadioGroup>
           </div>
+
+          {/* KaamDone Wallet Info */}
+          {kaamDoneWallet && (
+            <div className="p-3 rounded-lg bg-blue/10 border border-blue/20">
+              <p className="text-xs text-muted-foreground mb-1">Withdrawing from:</p>
+              <p className="text-sm font-medium text-blue">Kaam Done Wallet</p>
+              <p className="text-xs text-muted-foreground">
+                Available: {formatCurrency(kaamDoneWallet.balance)}
+              </p>
+            </div>
+          )}
 
           {/* Amount */}
           <div className="space-y-2">
@@ -191,7 +188,7 @@ export function WithdrawDialog({ open, onOpenChange, wallets, onWithdraw }: With
           {/* Submit */}
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !selectedWallet || !amount}
+            disabled={submitting || !withdrawnBy || !amount}
             className="w-full bg-gradient-to-r from-gold to-gold-dark text-black font-bold hover:opacity-90 disabled:opacity-50"
           >
             {submitting ? (

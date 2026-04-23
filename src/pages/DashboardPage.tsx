@@ -1,5 +1,3 @@
-'use client';
-
 import { Wallet, Ticket, AnalyticsData, TabName } from '@/lib/types';
 import { formatCurrency, formatDate, getWalletColorClasses } from '@/lib/helpers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +14,7 @@ import {
   Activity,
 } from 'lucide-react';
 
-interface DashboardTabProps {
+interface DashboardPageProps {
   wallets: Wallet[];
   tickets: Ticket[];
   analytics: AnalyticsData | null;
@@ -24,12 +22,9 @@ interface DashboardTabProps {
   onNavigate: (tab: TabName) => void;
 }
 
-export function DashboardTab({ wallets, tickets, analytics, loading, onNavigate }: DashboardTabProps) {
+export function DashboardPage({ wallets, tickets, analytics, loading, onNavigate }: DashboardPageProps) {
   const openTickets = tickets.filter((t) => t.status === 'open');
   const recentTickets = tickets.slice(0, 5);
-  const roshanWallet = wallets.find((w) => w.name === 'Roshan');
-  const anandWallet = wallets.find((w) => w.name === 'Anand');
-  const kaamDoneWallet = wallets.find((w) => w.name === 'KaamDone');
 
   if (loading) {
     return (

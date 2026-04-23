@@ -1,5 +1,3 @@
-'use client';
-
 import { AnalyticsData } from '@/lib/types';
 import { formatCurrency, getWalletColorClasses } from '@/lib/helpers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +27,7 @@ import {
   AreaChart,
 } from 'recharts';
 
-interface AnalyticsTabProps {
+interface AnalyticsPageProps {
   analytics: AnalyticsData | null;
   loading: boolean;
 }
@@ -38,7 +36,7 @@ const GOLD = '#D4AF37';
 const TEAL = '#14B8A6';
 const BLUE = '#3B82F6';
 
-export function AnalyticsTab({ analytics, loading }: AnalyticsTabProps) {
+export function AnalyticsPage({ analytics, loading }: AnalyticsPageProps) {
   if (loading || !analytics) {
     return (
       <div className="space-y-4">
@@ -71,11 +69,11 @@ export function AnalyticsTab({ analytics, loading }: AnalyticsTabProps) {
   ];
 
   // Prepare pie data for total earnings
-  const totalEarnings = analytics.earnings.roshan.total + analytics.earnings.anand.total + (analytics.wallets.find(w => w.name === 'KaamDone')?.totalIn || 0);
+  const totalEarnings = analytics.earnings.roshan.total + analytics.earnings.anand.total + (analytics.wallets.find(w => w.name === 'KaamDone')?.balance || 0);
   const pieData = [
     { name: 'Roshan', value: analytics.earnings.roshan.total, color: GOLD },
     { name: 'Anand', value: analytics.earnings.anand.total, color: TEAL },
-    { name: 'Kaam Done', value: analytics.wallets.find(w => w.name === 'KaamDone')?.totalIn || 0, color: BLUE },
+    { name: 'Kaam Done', value: analytics.wallets.find(w => w.name === 'KaamDone')?.balance || 0, color: BLUE },
   ];
 
   // Prepare volume data
@@ -121,10 +119,10 @@ export function AnalyticsTab({ analytics, loading }: AnalyticsTabProps) {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Wallet className="w-4 h-4 text-blue" />
-              <span className="text-xs text-muted-foreground">Kaam Done Total</span>
+              <span className="text-xs text-muted-foreground">Kaam Done Balance</span>
             </div>
             <p className="text-xl font-bold text-blue">
-              {formatCurrency(analytics.wallets.find(w => w.name === 'KaamDone')?.totalIn || 0)}
+              {formatCurrency(analytics.wallets.find(w => w.name === 'KaamDone')?.balance || 0)}
             </p>
           </CardContent>
         </Card>
@@ -222,7 +220,7 @@ export function AnalyticsTab({ analytics, loading }: AnalyticsTabProps) {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Monthly Growth - Wallet Accumulation */}
+        {/* Monthly Growth */}
         <Card className="bg-card/80 border-border/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -348,7 +346,7 @@ export function AnalyticsTab({ analytics, loading }: AnalyticsTabProps) {
         </Card>
       )}
 
-      {/* Wallet Details Table */}
+      {/* Wallet Details */}
       <Card className="bg-card/80 border-border/30">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">

@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,12 +16,13 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { createTicket } from '@/services/ticketService';
 
-interface NewWorkTabProps {
+interface NewWorkPageProps {
   onTicketCreated: () => void;
 }
 
-export function NewWorkTab({ onTicketCreated }: NewWorkTabProps) {
+export function NewWorkPage({ onTicketCreated }: NewWorkPageProps) {
   const { toast } = useToast();
   const [starter, setStarter] = useState<string>('');
   const [clientName, setClientName] = useState('');
@@ -68,28 +67,18 @@ export function NewWorkTab({ onTicketCreated }: NewWorkTabProps) {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          starter,
-          clientName,
-          clientPhone,
-          purpose,
-          totalAmount: total,
-        }),
+      const data = await createTicket({
+        starter,
+        clientName,
+        clientPhone,
+        purpose,
+        totalAmount: total,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create ticket');
-      }
 
       setSuccess(true);
       toast({
         title: 'Ticket Opened! 🎫',
-        description: `Ticket #${data.ticket.ticketNo} created. ${starter} gets ${formatCurrency(data.ticket.starterAmount)}.`,
+        description: `Ticket #${data.ticketNo} created. ${starter} gets ${formatCurrency(data.starterAmount)}.`,
       });
 
       // Reset form after delay

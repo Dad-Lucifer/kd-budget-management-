@@ -94,19 +94,19 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/money.png" alt="AgencyBudget" className="w-9 h-9 rounded-lg object-cover" />
-            <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">AgencyBudget</h1>
-              <p className="text-[11px] text-muted-foreground -mt-0.5">Smart Split Manager</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <img src="/money.png" alt="AgencyBudget" className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-cover shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight truncate">AgencyBudget</h1>
+              <p className="text-[11px] text-muted-foreground -mt-0.5 hidden sm:block">Smart Split Manager</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border/50">
-              <TrendingUp className="w-3.5 h-3.5 text-gold" />
-              <span className="text-xs text-muted-foreground">Total Balance:</span>
-              <span className="text-sm font-bold text-gold">{formatCurrency(totalBalance)}</span>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-secondary/50 border border-border/50">
+              <TrendingUp className="w-3.5 h-3.5 text-gold shrink-0" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground hidden sm:inline">Total Balance:</span>
+              <span className="text-xs sm:text-sm font-bold text-gold whitespace-nowrap">{formatCurrency(totalBalance)}</span>
             </div>
             <Button
               variant="outline"

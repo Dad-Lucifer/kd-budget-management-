@@ -11,6 +11,9 @@ import {
   Wallet,
   Users,
   Calendar,
+  User,
+  Phone,
+  FileText,
 } from 'lucide-react';
 
 interface HistoryPageProps {
@@ -103,8 +106,24 @@ export function HistoryPage({ tickets, loading }: HistoryPageProps) {
   });
 
   const withdrawalItems: HistoryItem[] = withdrawals.map((withdrawal) => {
-    const withdrawnBy = withdrawal.reason.includes('by Roshan') ? 'Roshan' :
-                       withdrawal.reason.includes('by Anand') ? 'Anand' : 'Unknown';
+    let withdrawnBy = 'Unknown';
+    let subDescription: string | undefined = undefined;
+
+    if (withdrawal.reason.startsWith('Withdrawal by ')) {
+      withdrawnBy = withdrawal.reason.replace('Withdrawal by ', '');
+    } else {
+      const colonIndex = withdrawal.reason.indexOf(':');
+      if (colonIndex > 0) {
+        withdrawnBy = withdrawal.reason.substring(0, colonIndex).trim();
+        subDescription = withdrawal.reason.substring(colonIndex + 1).trim();
+      } else {
+        // Fallback for older records
+        withdrawnBy = withdrawal.reason.includes('by Roshan') ? 'Roshan' :
+                     withdrawal.reason.includes('by Anand') ? 'Anand' : 'Unknown';
+        subDescription = withdrawal.reason;
+      }
+    }
+
     const colors = getWalletColorClasses(withdrawnBy);
     return {
       id: withdrawal.id,
@@ -112,7 +131,7 @@ export function HistoryPage({ tickets, loading }: HistoryPageProps) {
       date: withdrawal.createdAt,
       amount: withdrawal.amount,
       description: `Withdrawn by ${withdrawnBy}`,
-      subDescription: withdrawal.reason && !withdrawal.reason.startsWith('Withdrawal by') ? withdrawal.reason : undefined,
+      subDescription,
       colors,
       raw: withdrawal,
     };
@@ -236,22 +255,50 @@ export function HistoryPage({ tickets, loading }: HistoryPageProps) {
                       </div>
 
                       {item.type === 'ticket' ? (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <Users className="w-3 h-3" />
-                            <span className={item.colors.text}>{(item.raw as Ticket).starter}</span>
-                            <span>→</span>
-                            <span className="text-teal">{item.partner}</span>
+                        <div className="space-y-1.5 mt-2">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Users className="w-3.5 h-3.5" />
+                              <span className={item.colors.text}>{(item.raw as Ticket).starter}</span>
+                              {((item.raw as Ticket).type === 'partnered' && (item.raw as Ticket).partneredWith) ? (
+                                <>
+                                  <span>+</span>
+                                  <span className="text-purple-400">{(item.raw as Ticket).partneredWith}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>→</span>
+                                  <span className="text-teal">{item.partner}</span>
+                                </>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <User className="w-3.5 h-3.5" />
+                              <span className="text-foreground">{(item.raw as Ticket).clientName}</span>
+                            </div>
+                            {((item.raw as Ticket).clientPhone) && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <Phone className="w-3.5 h-3.5" />
+                                <span className="text-foreground">{(item.raw as Ticket).clientPhone}</span>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span>Client:</span>
-                            <span className="text-foreground">{(item.raw as Ticket).clientName}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+
+                          {((item.raw as Ticket).purpose) && (
+                            <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground bg-secondary/20 p-2 rounded-md border border-border/30">
+                              <FileText className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue" />
+                              <span className="line-clamp-2">{(item.raw as Ticket).purpose}</span>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground pt-1.5 border-t border-border/20">
                             <span>Splits:</span>
-                            <span className="text-gold">{(item.raw as Ticket).starterAmount}</span>
-                            <span className="text-teal">{(item.raw as Ticket).partnerAmount}</span>
-                            <span className="text-blue">{(item.raw as Ticket).kaamDoneAmount}</span>
+                            <span className="text-gold">₹{(item.raw as Ticket).starterAmount}</span>
+                            {((item.raw as Ticket).type === 'partnered') && (
+                              <span className="text-purple-400">₹{(item.raw as Ticket).partnerWalletAmount} (PW)</span>
+                            )}
+                            <span className="text-teal">₹{(item.raw as Ticket).partnerAmount}</span>
+                            <span className="text-blue">₹{(item.raw as Ticket).kaamDoneAmount} (KD)</span>
                           </div>
                         </div>
                       ) : (

@@ -12,6 +12,8 @@ export interface Wallet {
 export interface Ticket {
   id: string;
   ticketNo: number;
+  type?: 'owners' | 'partnered';
+  partneredWith?: string;
   starter: string;
   clientName: string;
   clientPhone: string;
@@ -20,6 +22,7 @@ export interface Ticket {
   starterAmount: number;
   partnerAmount: number;
   kaamDoneAmount: number;
+  partnerWalletAmount?: number;
   status: 'open' | 'closed';
   createdAt: string;
   closedAt: string | null;

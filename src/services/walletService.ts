@@ -53,7 +53,7 @@ const docToTransaction = (doc: any, walletName?: string): Transaction => {
 };
 
 export async function initializeWallets(): Promise<void> {
-  const walletNames = ['Roshan', 'Anand', 'KaamDone'];
+  const walletNames = ['Roshan', 'Anand', 'KaamDone', 'Partner Wallet'];
 
   for (const name of walletNames) {
     const walletRef = doc(db, 'wallets', name);

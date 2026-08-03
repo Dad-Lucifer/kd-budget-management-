@@ -108,10 +108,10 @@ export function DashboardPage({ wallets, tickets, analytics, loading, onNavigate
                 </div>
               </CardHeader>
               <CardContent>
-                <p className={`text-3xl font-bold ${colors.text}`}>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text} truncate`}>
                   {formatCurrency(wallet.balance)}
                 </p>
-                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-[11px] sm:text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <ArrowUpRight className="w-3 h-3 text-green-400" />
                     <span>In: {formatCurrency(wallet.totalIn)}</span>

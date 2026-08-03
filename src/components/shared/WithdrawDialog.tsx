@@ -65,7 +65,7 @@ export function WithdrawDialog({ open, onOpenChange, wallets, onWithdraw }: With
 
     setSubmitting(true);
     try {
-      const withdrawReason = reason || `Withdrawal by ${withdrawnBy}`;
+      const withdrawReason = reason ? `${withdrawnBy}: ${reason}` : `Withdrawal by ${withdrawnBy}`;
       const data = await withdrawFromWallet('KaamDone', withdrawAmount, withdrawReason);
 
       toast({

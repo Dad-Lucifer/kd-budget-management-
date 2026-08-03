@@ -25,6 +25,8 @@ const docToTicket = (doc: any): Ticket => {
   return {
     id: doc.id,
     ticketNo: data.ticketNo,
+    type: data.type || 'owners',
+    partneredWith: data.partneredWith || undefined,
     starter: data.starter,
     clientName: data.clientName,
     clientPhone: data.clientPhone || '',
@@ -33,6 +35,7 @@ const docToTicket = (doc: any): Ticket => {
     starterAmount: data.starterAmount,
     partnerAmount: data.partnerAmount,
     kaamDoneAmount: data.kaamDoneAmount,
+    partnerWalletAmount: data.partnerWalletAmount || 0,
     status: data.status,
     createdAt: timestampToISO(data.createdAt) || new Date().toISOString(),
     closedAt: timestampToISO(data.closedAt),
@@ -41,6 +44,8 @@ const docToTicket = (doc: any): Ticket => {
 };
 
 export async function createTicket(data: {
+  type?: 'owners' | 'partnered';
+  partneredWith?: string;
   starter: string;
   clientName: string;
   clientPhone: string;
@@ -48,20 +53,45 @@ export async function createTicket(data: {
   totalAmount: number;
 }): Promise<Ticket> {
   try {
-    const { starter, clientName, clientPhone, purpose, totalAmount } = data;
+    const { type = 'owners', partneredWith, starter, clientName, clientPhone, purpose, totalAmount } = data;
     const total = parseFloat(totalAmount.toString());
 
     if (isNaN(total) || total <= 0) {
       throw new Error('Invalid amount');
     }
 
-    // Nested Split Logic
-    const starterAmount = Math.round(total * 0.5 * 100) / 100;
-    const remainder = Math.round((total - starterAmount) * 100) / 100;
-    const partnerAmount = Math.round(remainder * 0.6 * 100) / 100;
-    const kaamDoneAmount = Math.round(remainder * 0.4 * 100) / 100;
+    let starterAmount = 0;
+    let partnerAmount = 0;
+    let kaamDoneAmount = 0;
+    let partnerWalletAmount = 0;
 
     const partner = starter === 'Roshan' ? 'Anand' : 'Roshan';
+
+    if (type === 'partnered') {
+      const percentages = [40, 20, 20, 20];
+      let results = percentages.map(p => (total * p) / 100);
+      results = results.map(val => Math.floor(val));
+
+      let totalCalculated = results.reduce((a, b) => a + b, 0);
+      let remainder = total - totalCalculated;
+
+      let i = 0;
+      while (remainder > 0) {
+          results[i]++;
+          remainder--;
+          i = (i + 1) % results.length;
+      }
+
+      starterAmount = results[0];
+      partnerWalletAmount = results[1];
+      partnerAmount = results[2];
+      kaamDoneAmount = results[3];
+    } else {
+      starterAmount = Math.round(total * 0.5 * 100) / 100;
+      const remainder = Math.round((total - starterAmount) * 100) / 100;
+      partnerAmount = Math.round(remainder * 0.6 * 100) / 100;
+      kaamDoneAmount = Math.round(remainder * 0.4 * 100) / 100;
+    }
 
     // Get next ticket number BEFORE transaction
     const ticketsQuery = query(collection(db, 'tickets'), orderBy('ticketNo', 'desc'));
@@ -75,16 +105,20 @@ export async function createTicket(data: {
       const starterWalletRef = doc(db, 'wallets', starter);
       const partnerWalletRef = doc(db, 'wallets', partner);
       const kaamDoneWalletRef = doc(db, 'wallets', 'KaamDone');
+      const partnerEntityWalletRef = doc(db, 'wallets', 'Partner Wallet');
 
       const starterWalletSnap = await transaction.get(starterWalletRef);
       const partnerWalletSnap = await transaction.get(partnerWalletRef);
       const kaamDoneWalletSnap = await transaction.get(kaamDoneWalletRef);
+      const partnerEntityWalletSnap = type === 'partnered' ? await transaction.get(partnerEntityWalletRef) : null;
 
       // Now perform all WRITES after all reads
       // Create ticket
       const ticketRef = doc(collection(db, 'tickets'));
       const ticketData = {
         ticketNo,
+        type,
+        partneredWith: partneredWith || null,
         starter,
         clientName,
         clientPhone: clientPhone || '',
@@ -93,6 +127,7 @@ export async function createTicket(data: {
         starterAmount,
         partnerAmount,
         kaamDoneAmount,
+        partnerWalletAmount,
         status: 'open',
         createdAt: serverTimestamp(),
         closedAt: null,
@@ -120,17 +155,17 @@ export async function createTicket(data: {
         });
       }
 
-      // Credit partner wallet
+      // Credit partner wallet (the other owner)
       if (partnerWalletSnap.exists()) {
-        const partnerData = partnerWalletSnap.data();
+        const pData = partnerWalletSnap.data();
         transaction.update(partnerWalletRef, {
-          balance: partnerData.balance + partnerAmount,
-          totalIn: partnerData.totalIn + partnerAmount,
+          balance: pData.balance + partnerAmount,
+          totalIn: pData.totalIn + partnerAmount,
           updatedAt: serverTimestamp(),
         });
 
-        const partnerTxRef = doc(collection(db, 'transactions'));
-        transaction.set(partnerTxRef, {
+        const pTxRef = doc(collection(db, 'transactions'));
+        transaction.set(pTxRef, {
           walletId: partner,
           ticketId: ticketRef.id,
           type: 'credit',
@@ -155,6 +190,26 @@ export async function createTicket(data: {
           ticketId: ticketRef.id,
           type: 'credit',
           amount: kaamDoneAmount,
+          reason: 'ticket_split',
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      // Credit "Partner Wallet" entity if partnered
+      if (type === 'partnered' && partnerEntityWalletSnap?.exists()) {
+        const peData = partnerEntityWalletSnap.data();
+        transaction.update(partnerEntityWalletRef, {
+          balance: peData.balance + partnerWalletAmount,
+          totalIn: peData.totalIn + partnerWalletAmount,
+          updatedAt: serverTimestamp(),
+        });
+
+        const peTxRef = doc(collection(db, 'transactions'));
+        transaction.set(peTxRef, {
+          walletId: 'Partner Wallet',
+          ticketId: ticketRef.id,
+          type: 'credit',
+          amount: partnerWalletAmount,
           reason: 'ticket_split',
           createdAt: serverTimestamp(),
         });

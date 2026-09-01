@@ -88,7 +88,7 @@ export function DashboardPage({ wallets, tickets, analytics, loading, onNavigate
       </div>
 
       {/* Wallet Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {wallets.map((wallet) => {
           const colors = getWalletColorClasses(wallet.name);
           const displayName = wallet.name === 'KaamDone' ? 'Kaam Done' : wallet.name;
@@ -97,28 +97,28 @@ export function DashboardPage({ wallets, tickets, analytics, loading, onNavigate
               key={wallet.id}
               className={`${colors.bg} ${colors.border} ${colors.glow} transition-all duration-300 ${colors.hover}`}
             >
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-2 p-3.5 sm:p-5">
                 <div className="flex items-center justify-between">
-                  <CardTitle className={`text-sm font-medium ${colors.text}`}>
+                  <CardTitle className={`text-xs sm:text-sm font-medium ${colors.text} truncate`}>
                     {displayName}&apos;s Wallet
                   </CardTitle>
-                  <div className={`w-8 h-8 rounded-full ${colors.badge} flex items-center justify-center`}>
-                    <WalletIcon className="w-4 h-4" />
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${colors.badge} flex items-center justify-center shrink-0`}>
+                    <WalletIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text} truncate`}>
+              <CardContent className="p-3.5 sm:p-5 pt-0">
+                <p className={`text-xl sm:text-2xl font-bold ${colors.text} truncate`}>
                   {formatCurrency(wallet.balance)}
                 </p>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-[11px] sm:text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 sm:mt-3 text-[10px] sm:text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <ArrowUpRight className="w-3 h-3 text-green-400" />
-                    <span>In: {formatCurrency(wallet.totalIn)}</span>
+                    <ArrowUpRight className="w-3 h-3 text-green-400 shrink-0" />
+                    <span className="truncate">In: {formatCurrency(wallet.totalIn)}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <ArrowDownRight className="w-3 h-3 text-red-400" />
-                    <span>Out: {formatCurrency(wallet.totalOut)}</span>
+                    <ArrowDownRight className="w-3 h-3 text-red-400 shrink-0" />
+                    <span className="truncate">Out: {formatCurrency(wallet.totalOut)}</span>
                   </div>
                 </div>
               </CardContent>

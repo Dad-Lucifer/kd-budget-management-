@@ -118,10 +118,16 @@ export function ActiveTicketsPage({ tickets, loading, onTicketClosed }: ActiveTi
                     <Badge className={`text-xs ${starterColors.badge}`}>
                       #{ticket.ticketNo}
                     </Badge>
-                    <Badge className="bg-teal/20 text-teal text-xs">
-                      <Clock className="w-3 h-3 mr-1" />
-                      OPEN
-                    </Badge>
+                    {ticket.type === 'partnered' ? (
+                      <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs">
+                        🤝 PARTNERED ({ticket.partneredWith || 'Partner'})
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-teal/20 text-teal text-xs">
+                        <Clock className="w-3 h-3 mr-1" />
+                        OPEN
+                      </Badge>
+                    )}
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -182,23 +188,54 @@ export function ActiveTicketsPage({ tickets, loading, onTicketClosed }: ActiveTi
                 </div>
 
                 {/* Split Details */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="p-2 rounded-lg bg-gold/10 border border-gold/20 text-center">
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Starter</p>
-                    <p className="text-xs font-bold text-gold">{formatCurrency(ticket.starterAmount)}</p>
-                    <p className="text-[9px] text-gold/70">{ticket.starter}</p>
+                {ticket.type === 'partnered' ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="p-2 rounded-lg bg-gold/10 border border-gold/20 text-center">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Roshan</p>
+                      <p className="text-xs font-bold text-gold">
+                        {formatCurrency(ticket.roshanAmount ?? (ticket.starter === 'Roshan' ? ticket.starterAmount : ticket.partnerAmount))}
+                      </p>
+                      <p className="text-[9px] text-gold/70">{ticket.starter === 'Roshan' ? 'Started' : 'Partner'}</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-teal/10 border border-teal/20 text-center">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Anand</p>
+                      <p className="text-xs font-bold text-teal">
+                        {formatCurrency(ticket.anandAmount ?? (ticket.starter === 'Anand' ? ticket.starterAmount : ticket.partnerAmount))}
+                      </p>
+                      <p className="text-[9px] text-teal/70">{ticket.starter === 'Anand' ? 'Started' : 'Partner'}</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-center">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Partner</p>
+                      <p className="text-xs font-bold text-purple-400">
+                        {formatCurrency(ticket.partnerWalletAmount ?? 0)}
+                      </p>
+                      <p className="text-[9px] text-purple-400/70 truncate">{ticket.partneredWith || 'Partner'}</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-blue/10 border border-blue/20 text-center">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Kaam Done</p>
+                      <p className="text-xs font-bold text-blue">{formatCurrency(ticket.kaamDoneAmount)}</p>
+                      <p className="text-[9px] text-blue/70">Savings</p>
+                    </div>
                   </div>
-                  <div className="p-2 rounded-lg bg-teal/10 border border-teal/20 text-center">
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Partner</p>
-                    <p className="text-xs font-bold text-teal">{formatCurrency(ticket.partnerAmount)}</p>
-                    <p className="text-[9px] text-teal/70">{partner}</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-2 rounded-lg bg-gold/10 border border-gold/20 text-center">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Starter</p>
+                      <p className="text-xs font-bold text-gold">{formatCurrency(ticket.starterAmount)}</p>
+                      <p className="text-[9px] text-gold/70">{ticket.starter}</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-teal/10 border border-teal/20 text-center">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Partner</p>
+                      <p className="text-xs font-bold text-teal">{formatCurrency(ticket.partnerAmount)}</p>
+                      <p className="text-[9px] text-teal/70">{partner}</p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-blue/10 border border-blue/20 text-center">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Kaam Done</p>
+                      <p className="text-xs font-bold text-blue">{formatCurrency(ticket.kaamDoneAmount)}</p>
+                      <p className="text-[9px] text-blue/70">Savings</p>
+                    </div>
                   </div>
-                  <div className="p-2 rounded-lg bg-blue/10 border border-blue/20 text-center">
-                    <p className="text-[10px] text-muted-foreground mb-0.5">Kaam Done</p>
-                    <p className="text-xs font-bold text-blue">{formatCurrency(ticket.kaamDoneAmount)}</p>
-                    <p className="text-[9px] text-blue/70">Savings</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Opened At */}
                 <p className="text-[10px] text-muted-foreground mt-3">

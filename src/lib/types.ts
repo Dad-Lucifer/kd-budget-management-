@@ -23,6 +23,8 @@ export interface Ticket {
   partnerAmount: number;
   kaamDoneAmount: number;
   partnerWalletAmount?: number;
+  roshanAmount?: number;
+  anandAmount?: number;
   status: 'open' | 'closed';
   createdAt: string;
   closedAt: string | null;

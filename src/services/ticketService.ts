@@ -36,6 +36,8 @@ const docToTicket = (doc: any): Ticket => {
     partnerAmount: data.partnerAmount,
     kaamDoneAmount: data.kaamDoneAmount,
     partnerWalletAmount: data.partnerWalletAmount || 0,
+    roshanAmount: data.roshanAmount,
+    anandAmount: data.anandAmount,
     status: data.status,
     createdAt: timestampToISO(data.createdAt) || new Date().toISOString(),
     closedAt: timestampToISO(data.closedAt),
@@ -48,12 +50,24 @@ export async function createTicket(data: {
   partneredWith?: string;
   starter: string;
   clientName: string;
-  clientPhone: string;
+  clientPhone?: string;
   purpose: string;
   totalAmount: number;
+  roshanAmount?: number;
+  anandAmount?: number;
+  partnerWalletAmount?: number;
+  kaamDoneAmount?: number;
 }): Promise<Ticket> {
   try {
-    const { type = 'owners', partneredWith, starter, clientName, clientPhone, purpose, totalAmount } = data;
+    const {
+      type = 'owners',
+      partneredWith,
+      starter,
+      clientName,
+      clientPhone = '',
+      purpose,
+      totalAmount,
+    } = data;
     const total = parseFloat(totalAmount.toString());
 
     if (isNaN(total) || total <= 0) {
@@ -64,33 +78,34 @@ export async function createTicket(data: {
     let partnerAmount = 0;
     let kaamDoneAmount = 0;
     let partnerWalletAmount = 0;
+    let roshanAmount = 0;
+    let anandAmount = 0;
 
-    const partner = starter === 'Roshan' ? 'Anand' : 'Roshan';
+    const otherOwner = starter === 'Roshan' ? 'Anand' : 'Roshan';
 
     if (type === 'partnered') {
-      const percentages = [40, 20, 20, 20];
-      let results = percentages.map(p => (total * p) / 100);
-      results = results.map(val => Math.floor(val));
+      roshanAmount = parseFloat((data.roshanAmount ?? 0).toString()) || 0;
+      anandAmount = parseFloat((data.anandAmount ?? 0).toString()) || 0;
+      partnerWalletAmount = parseFloat((data.partnerWalletAmount ?? 0).toString()) || 0;
+      kaamDoneAmount = parseFloat((data.kaamDoneAmount ?? 0).toString()) || 0;
 
-      let totalCalculated = results.reduce((a, b) => a + b, 0);
-      let remainder = total - totalCalculated;
+      const sum = Math.round((roshanAmount + anandAmount + partnerWalletAmount + kaamDoneAmount) * 100) / 100;
+      const roundedTotal = Math.round(total * 100) / 100;
 
-      let i = 0;
-      while (remainder > 0) {
-          results[i]++;
-          remainder--;
-          i = (i + 1) % results.length;
+      if (sum !== roundedTotal) {
+        throw new Error(`Distribution sum (₹${sum}) must equal the total amount (₹${roundedTotal}).`);
       }
 
-      starterAmount = results[0];
-      partnerWalletAmount = results[1];
-      partnerAmount = results[2];
-      kaamDoneAmount = results[3];
+      starterAmount = starter === 'Roshan' ? roshanAmount : anandAmount;
+      partnerAmount = starter === 'Roshan' ? anandAmount : roshanAmount;
     } else {
       starterAmount = Math.round(total * 0.5 * 100) / 100;
       const remainder = Math.round((total - starterAmount) * 100) / 100;
       partnerAmount = Math.round(remainder * 0.6 * 100) / 100;
       kaamDoneAmount = Math.round(remainder * 0.4 * 100) / 100;
+      roshanAmount = starter === 'Roshan' ? starterAmount : partnerAmount;
+      anandAmount = starter === 'Anand' ? starterAmount : partnerAmount;
+      partnerWalletAmount = 0;
     }
 
     // Get next ticket number BEFORE transaction
@@ -102,20 +117,20 @@ export async function createTicket(data: {
     // Create ticket and update wallets in a transaction
     const result = await runTransaction(db, async (transaction) => {
       // Read all wallets FIRST (before any writes)
-      const starterWalletRef = doc(db, 'wallets', starter);
-      const partnerWalletRef = doc(db, 'wallets', partner);
+      const roshanWalletRef = doc(db, 'wallets', 'Roshan');
+      const anandWalletRef = doc(db, 'wallets', 'Anand');
       const kaamDoneWalletRef = doc(db, 'wallets', 'KaamDone');
       const partnerEntityWalletRef = doc(db, 'wallets', 'Partner Wallet');
 
-      const starterWalletSnap = await transaction.get(starterWalletRef);
-      const partnerWalletSnap = await transaction.get(partnerWalletRef);
+      const roshanWalletSnap = await transaction.get(roshanWalletRef);
+      const anandWalletSnap = await transaction.get(anandWalletRef);
       const kaamDoneWalletSnap = await transaction.get(kaamDoneWalletRef);
       const partnerEntityWalletSnap = type === 'partnered' ? await transaction.get(partnerEntityWalletRef) : null;
 
       // Now perform all WRITES after all reads
       // Create ticket
       const ticketRef = doc(collection(db, 'tickets'));
-      const ticketData = {
+      const ticketData: Record<string, any> = {
         ticketNo,
         type,
         partneredWith: partneredWith || null,
@@ -126,6 +141,8 @@ export async function createTicket(data: {
         totalAmount: total,
         starterAmount,
         partnerAmount,
+        roshanAmount,
+        anandAmount,
         kaamDoneAmount,
         partnerWalletAmount,
         status: 'open',
@@ -134,53 +151,52 @@ export async function createTicket(data: {
       };
       transaction.set(ticketRef, ticketData);
 
-      // Credit starter wallet
-      if (starterWalletSnap.exists()) {
-        const starterData = starterWalletSnap.data();
-        transaction.update(starterWalletRef, {
-          balance: starterData.balance + starterAmount,
-          totalIn: starterData.totalIn + starterAmount,
+      // Credit Roshan wallet
+      if (roshanWalletSnap.exists() && roshanAmount > 0) {
+        const roshanData = roshanWalletSnap.data();
+        transaction.update(roshanWalletRef, {
+          balance: (roshanData.balance || 0) + roshanAmount,
+          totalIn: (roshanData.totalIn || 0) + roshanAmount,
           updatedAt: serverTimestamp(),
         });
 
-        // Create transaction record
-        const starterTxRef = doc(collection(db, 'transactions'));
-        transaction.set(starterTxRef, {
-          walletId: starter,
+        const roshanTxRef = doc(collection(db, 'transactions'));
+        transaction.set(roshanTxRef, {
+          walletId: 'Roshan',
           ticketId: ticketRef.id,
           type: 'credit',
-          amount: starterAmount,
-          reason: 'ticket_split',
+          amount: roshanAmount,
+          reason: type === 'partnered' ? `partnered_ticket_split (${starter === 'Roshan' ? 'Starter' : 'Owner'})` : 'ticket_split',
           createdAt: serverTimestamp(),
         });
       }
 
-      // Credit partner wallet (the other owner)
-      if (partnerWalletSnap.exists()) {
-        const pData = partnerWalletSnap.data();
-        transaction.update(partnerWalletRef, {
-          balance: pData.balance + partnerAmount,
-          totalIn: pData.totalIn + partnerAmount,
+      // Credit Anand wallet
+      if (anandWalletSnap.exists() && anandAmount > 0) {
+        const anandData = anandWalletSnap.data();
+        transaction.update(anandWalletRef, {
+          balance: (anandData.balance || 0) + anandAmount,
+          totalIn: (anandData.totalIn || 0) + anandAmount,
           updatedAt: serverTimestamp(),
         });
 
-        const pTxRef = doc(collection(db, 'transactions'));
-        transaction.set(pTxRef, {
-          walletId: partner,
+        const anandTxRef = doc(collection(db, 'transactions'));
+        transaction.set(anandTxRef, {
+          walletId: 'Anand',
           ticketId: ticketRef.id,
           type: 'credit',
-          amount: partnerAmount,
-          reason: 'ticket_split',
+          amount: anandAmount,
+          reason: type === 'partnered' ? `partnered_ticket_split (${starter === 'Anand' ? 'Starter' : 'Owner'})` : 'ticket_split',
           createdAt: serverTimestamp(),
         });
       }
 
       // Credit KaamDone wallet
-      if (kaamDoneWalletSnap.exists()) {
+      if (kaamDoneWalletSnap.exists() && kaamDoneAmount > 0) {
         const kaamDoneData = kaamDoneWalletSnap.data();
         transaction.update(kaamDoneWalletRef, {
-          balance: kaamDoneData.balance + kaamDoneAmount,
-          totalIn: kaamDoneData.totalIn + kaamDoneAmount,
+          balance: (kaamDoneData.balance || 0) + kaamDoneAmount,
+          totalIn: (kaamDoneData.totalIn || 0) + kaamDoneAmount,
           updatedAt: serverTimestamp(),
         });
 
@@ -190,19 +206,31 @@ export async function createTicket(data: {
           ticketId: ticketRef.id,
           type: 'credit',
           amount: kaamDoneAmount,
-          reason: 'ticket_split',
+          reason: type === 'partnered' ? 'partnered_ticket_split (Kaam Done)' : 'ticket_split',
           createdAt: serverTimestamp(),
         });
       }
 
       // Credit "Partner Wallet" entity if partnered
-      if (type === 'partnered' && partnerEntityWalletSnap?.exists()) {
-        const peData = partnerEntityWalletSnap.data();
-        transaction.update(partnerEntityWalletRef, {
-          balance: peData.balance + partnerWalletAmount,
-          totalIn: peData.totalIn + partnerWalletAmount,
-          updatedAt: serverTimestamp(),
-        });
+      if (type === 'partnered' && partnerWalletAmount > 0) {
+        if (partnerEntityWalletSnap && partnerEntityWalletSnap.exists()) {
+          const peData = partnerEntityWalletSnap.data();
+          transaction.update(partnerEntityWalletRef, {
+            balance: (peData.balance || 0) + partnerWalletAmount,
+            totalIn: (peData.totalIn || 0) + partnerWalletAmount,
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          // If Partner Wallet document doesn't exist yet, initialize and credit it
+          transaction.set(partnerEntityWalletRef, {
+            name: 'Partner Wallet',
+            balance: partnerWalletAmount,
+            totalIn: partnerWalletAmount,
+            totalOut: 0,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
 
         const peTxRef = doc(collection(db, 'transactions'));
         transaction.set(peTxRef, {
@@ -210,7 +238,7 @@ export async function createTicket(data: {
           ticketId: ticketRef.id,
           type: 'credit',
           amount: partnerWalletAmount,
-          reason: 'ticket_split',
+          reason: `partnered_ticket_split (${partneredWith || 'Partner'})`,
           createdAt: serverTimestamp(),
         });
       }
@@ -224,7 +252,7 @@ export async function createTicket(data: {
       createdAt: new Date().toISOString(),
       closedAt: null,
       transactions: [],
-    } as Ticket;
+    } as unknown as Ticket;
   } catch (error) {
     console.error('Create ticket error:', error);
     throw error;

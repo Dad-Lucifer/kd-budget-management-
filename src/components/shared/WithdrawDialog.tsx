@@ -92,9 +92,9 @@ export function WithdrawDialog({ open, onOpenChange, wallets, onWithdraw }: With
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border/50 sm:max-w-md">
+      <DialogContent className="bg-card border-border/50 sm:max-w-md w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <WalletIcon className="w-5 h-5 text-gold" />
             Withdraw from Wallet
           </DialogTitle>

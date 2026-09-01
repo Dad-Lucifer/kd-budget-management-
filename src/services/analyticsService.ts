@@ -59,18 +59,18 @@ export async function getAnalytics(period: string = 'all'): Promise<AnalyticsDat
     }
 
     // 1. Earnings Comparison - Lifetime earnings by person
-    const roshanEarnings = tickets
+    const roshanStarterEarnings = tickets
       .filter((t: any) => t.starter === 'Roshan')
-      .reduce((sum: number, t: any) => sum + t.starterAmount, 0);
+      .reduce((sum: number, t: any) => sum + (t.roshanAmount !== undefined ? t.roshanAmount : (t.starterAmount || 0)), 0);
     const roshanPartnerEarnings = tickets
       .filter((t: any) => t.starter === 'Anand')
-      .reduce((sum: number, t: any) => sum + t.partnerAmount, 0);
-    const anandEarnings = tickets
+      .reduce((sum: number, t: any) => sum + (t.roshanAmount !== undefined ? t.roshanAmount : (t.partnerAmount || 0)), 0);
+    const anandStarterEarnings = tickets
       .filter((t: any) => t.starter === 'Anand')
-      .reduce((sum: number, t: any) => sum + t.starterAmount, 0);
+      .reduce((sum: number, t: any) => sum + (t.anandAmount !== undefined ? t.anandAmount : (t.starterAmount || 0)), 0);
     const anandPartnerEarnings = tickets
       .filter((t: any) => t.starter === 'Roshan')
-      .reduce((sum: number, t: any) => sum + t.partnerAmount, 0);
+      .reduce((sum: number, t: any) => sum + (t.anandAmount !== undefined ? t.anandAmount : (t.partnerAmount || 0)), 0);
 
     // 2. Wallet Growth - Monthly data
     const monthlyData: Record<string, { roshan: number; anand: number; kaamDone: number; total: number }> = {};
@@ -81,15 +81,13 @@ export async function getAnalytics(period: string = 'all'): Promise<AnalyticsDat
         monthlyData[key] = { roshan: 0, anand: 0, kaamDone: 0, total: 0 };
       }
 
-      if (t.starter === 'Roshan') {
-        monthlyData[key].roshan += t.starterAmount;
-        monthlyData[key].anand += t.partnerAmount;
-      } else {
-        monthlyData[key].anand += t.starterAmount;
-        monthlyData[key].roshan += t.partnerAmount;
-      }
-      monthlyData[key].kaamDone += t.kaamDoneAmount;
-      monthlyData[key].total += t.totalAmount;
+      const rAmount = t.roshanAmount !== undefined ? t.roshanAmount : (t.starter === 'Roshan' ? (t.starterAmount || 0) : (t.partnerAmount || 0));
+      const aAmount = t.anandAmount !== undefined ? t.anandAmount : (t.starter === 'Anand' ? (t.starterAmount || 0) : (t.partnerAmount || 0));
+
+      monthlyData[key].roshan += rAmount;
+      monthlyData[key].anand += aAmount;
+      monthlyData[key].kaamDone += t.kaamDoneAmount || 0;
+      monthlyData[key].total += t.totalAmount || 0;
     });
 
     const monthlyGrowth = Object.entries(monthlyData)
@@ -124,8 +122,8 @@ export async function getAnalytics(period: string = 'all'): Promise<AnalyticsDat
 
     return {
       earnings: {
-        roshan: { asStarter: roshanEarnings, asPartner: roshanPartnerEarnings, total: roshanEarnings + roshanPartnerEarnings },
-        anand: { asStarter: anandEarnings, asPartner: anandPartnerEarnings, total: anandEarnings + anandPartnerEarnings },
+        roshan: { asStarter: roshanStarterEarnings, asPartner: roshanPartnerEarnings, total: roshanStarterEarnings + roshanPartnerEarnings },
+        anand: { asStarter: anandStarterEarnings, asPartner: anandPartnerEarnings, total: anandStarterEarnings + anandPartnerEarnings },
       },
       monthlyGrowth,
       volume: {

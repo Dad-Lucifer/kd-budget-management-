@@ -240,7 +240,14 @@ export function HistoryPage({ tickets, loading }: HistoryPageProps) {
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <p className="text-sm font-medium text-foreground truncate">
                           {item.type === 'ticket' ? (
-                            <>Ticket #{((item.raw as Ticket).ticketNo)}</>
+                            <div className="flex items-center gap-2">
+                              <span>Ticket #{((item.raw as Ticket).ticketNo)}</span>
+                              {((item.raw as Ticket).type === 'partnered') && (
+                                <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[10px] py-0 px-1.5 rounded font-normal">
+                                  🤝 Partnered
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             item.description
                           )}
@@ -259,11 +266,11 @@ export function HistoryPage({ tickets, loading }: HistoryPageProps) {
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
                               <Users className="w-3.5 h-3.5" />
-                              <span className={item.colors.text}>{(item.raw as Ticket).starter}</span>
+                              <span className={item.colors.text}>{(item.raw as Ticket).starter} (Starter)</span>
                               {((item.raw as Ticket).type === 'partnered' && (item.raw as Ticket).partneredWith) ? (
                                 <>
                                   <span>+</span>
-                                  <span className="text-purple-400">{(item.raw as Ticket).partneredWith}</span>
+                                  <span className="text-purple-400 font-medium">Partner: {(item.raw as Ticket).partneredWith}</span>
                                 </>
                               ) : (
                                 <>
@@ -291,15 +298,36 @@ export function HistoryPage({ tickets, loading }: HistoryPageProps) {
                             </div>
                           )}
 
-                          <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground pt-1.5 border-t border-border/20">
-                            <span>Splits:</span>
-                            <span className="text-gold">₹{(item.raw as Ticket).starterAmount}</span>
-                            {((item.raw as Ticket).type === 'partnered') && (
-                              <span className="text-purple-400">₹{(item.raw as Ticket).partnerWalletAmount} (PW)</span>
-                            )}
-                            <span className="text-teal">₹{(item.raw as Ticket).partnerAmount}</span>
-                            <span className="text-blue">₹{(item.raw as Ticket).kaamDoneAmount} (KD)</span>
-                          </div>
+                          {((item.raw as Ticket).type === 'partnered') ? (
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground pt-1.5 border-t border-border/20">
+                              <span className="font-semibold text-foreground">Splits:</span>
+                              <span className="text-gold font-medium">
+                                Roshan: ₹{((item.raw as Ticket).roshanAmount ?? ((item.raw as Ticket).starter === 'Roshan' ? (item.raw as Ticket).starterAmount : (item.raw as Ticket).partnerAmount))}
+                              </span>
+                              <span>•</span>
+                              <span className="text-teal font-medium">
+                                Anand: ₹{((item.raw as Ticket).anandAmount ?? ((item.raw as Ticket).starter === 'Anand' ? (item.raw as Ticket).starterAmount : (item.raw as Ticket).partnerAmount))}
+                              </span>
+                              <span>•</span>
+                              <span className="text-purple-400 font-medium">
+                                {((item.raw as Ticket).partneredWith) ? `${(item.raw as Ticket).partneredWith}: ` : 'Partner: '}
+                                ₹{(item.raw as Ticket).partnerWalletAmount ?? 0}
+                              </span>
+                              <span>•</span>
+                              <span className="text-blue font-medium">
+                                Kaam Done: ₹{(item.raw as Ticket).kaamDoneAmount}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground pt-1.5 border-t border-border/20">
+                              <span className="font-semibold text-foreground">Splits:</span>
+                              <span className="text-gold font-medium">{(item.raw as Ticket).starter}: ₹{(item.raw as Ticket).starterAmount}</span>
+                              <span>•</span>
+                              <span className="text-teal font-medium">{item.partner}: ₹{(item.raw as Ticket).partnerAmount}</span>
+                              <span>•</span>
+                              <span className="text-blue font-medium">Kaam Done: ₹{(item.raw as Ticket).kaamDoneAmount}</span>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="space-y-1">

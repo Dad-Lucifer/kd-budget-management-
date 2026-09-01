@@ -29,6 +29,9 @@ export function getWalletColor(name: string): string {
     case 'Roshan': return 'gold';
     case 'Anand': return 'teal';
     case 'KaamDone': return 'blue';
+    case 'Partner Wallet':
+    case 'Partner':
+      return 'purple';
     default: return 'gold';
   }
 }
@@ -61,6 +64,16 @@ export function getWalletColorClasses(name: string) {
         glow: 'glow-blue',
         badge: 'bg-blue/20 text-blue',
         hover: 'hover:border-blue/50',
+      };
+    case 'Partner Wallet':
+    case 'Partner':
+      return {
+        bg: 'bg-purple-500/10',
+        border: 'border-purple-500/30',
+        text: 'text-purple-400',
+        glow: 'glow-purple',
+        badge: 'bg-purple-500/20 text-purple-400',
+        hover: 'hover:border-purple-500/50',
       };
     default:
       return {
